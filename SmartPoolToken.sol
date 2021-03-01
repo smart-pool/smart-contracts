@@ -19,7 +19,7 @@ contract SmartPoolToken {
     uint8 public constant decimals = 18;
 
     /// @notice Total number of tokens in circulation
-    uint public totalSupply;
+    uint public totalSupply = 8_000_000e18;
 
     /// @notice Allowance amounts on behalf of others
     mapping (address => mapping (address => uint96)) internal allowances;
@@ -68,8 +68,7 @@ contract SmartPoolToken {
      * @param initialSupply The initial supply minted at deployment
      * @param account The initial account to grant all the tokens
      */
-    constructor(uint initialSupply, address account) public {
-        totalSupply = safe96(initialSupply, "Token::constructor:amount exceeds 96 bits");
+    constructor(address account) public {
         balances[account] = uint96(initialSupply);
         emit Transfer(address(0), account, initialSupply);
     }
