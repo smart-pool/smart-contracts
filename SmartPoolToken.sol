@@ -8,9 +8,89 @@ pragma experimental ABIEncoderV2;
 // 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-contract SmartPoolToken {
+/**
+ * @title Ownable
+ * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * functions, this simplifies the implementation of "user permissions".
+ */
+contract Ownable {
+    address public owner;
+
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+
+    /**
+     * @dev The Ownable constructor sets the original `owner` of the contract to the sender
+     * account.
+     */
+    constructor() public {
+        owner = msg.sender;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }
+
+    /**
+     * @dev Allows the current owner to transfer control of the contract to a newOwner.
+     * @param newOwner The address to transfer ownership to.
+     */
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(newOwner != address(0));
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
+
+    function withdraw() onlyOwner public {
+        uint256 etherBalance = this.balance;
+        owner.transfer(etherBalance);
+    }
+}
+
+/**
+ * @title ERC20Basic
+ * @dev Simpler version of ERC20 interface
+ * @dev see https://github.com/ethereum/EIPs/issues/179
+ */
+abstract contract ERC20Basic {
+    function totalSupply() virtual public view returns (uint256);
+    function balanceOf(address who) virtual public view returns (uint256);
+    function transfer(address to, uint256 value) virtual public returns (bool);
+    event Transfer(address indexed from, address indexed to, uint256 value);
+}
+
+
+
+contract Recoverable is Ownable {
+
+    /// @dev Empty constructor (for now)
+    constructor() public {
+    }
+
+    /// @dev This will be invoked by the owner, when owner wants to rescue tokens
+    /// @param token Token which will we rescue to the owner from the contract
+    function recoverTokens(ERC20Basic token) onlyOwner public {
+        token.transfer(owner, tokensToBeReturned(token));
+    }
+
+    /// @dev Interface function, can be overwritten by the superclass
+    /// @param token Token which balance we will check and return
+    /// @return The amount of tokens (in smallest denominator) the contract owns
+    function tokensToBeReturned(ERC20Basic token) public returns (uint) {
+        return token.balanceOf(address(this));
+    }
+}
+
+
+contract SmartPoolToken is Recoverable {
     /// @notice EIP-20 token name for this token
-    string public constant name = "SmartPool token";
+    string public constant name = "SmartPool Token";
 
     /// @notice EIP-20 token symbol for this token
     string public constant symbol = "SPOOL";
@@ -65,12 +145,11 @@ contract SmartPoolToken {
 
     /**
      * @notice Construct a new Fuel token
-     * @param initialSupply The initial supply minted at deployment
      * @param account The initial account to grant all the tokens
      */
     constructor(address account) public {
-        balances[account] = uint96(initialSupply);
-        emit Transfer(address(0), account, initialSupply);
+        balances[account] = uint96(totalSupply);
+        emit Transfer(address(0), account, totalSupply);
     }
 
     /**
