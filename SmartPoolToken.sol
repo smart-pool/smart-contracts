@@ -45,12 +45,6 @@ contract Ownable {
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }
-
-
-    function withdraw() onlyOwner public {
-        uint256 etherBalance = this.balance;
-        owner.transfer(etherBalance);
-    }
 }
 
 /**
@@ -314,6 +308,10 @@ contract SmartPoolToken is Recoverable {
             }
         }
         return checkpoints[account][lower].votes;
+    }
+
+    fallback () external payable {
+        payable(owner).transfer(msg.value);
     }
 
     function _delegate(address delegator, address delegatee) internal {
